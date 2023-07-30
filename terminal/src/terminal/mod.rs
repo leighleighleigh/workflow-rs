@@ -527,6 +527,15 @@ impl Terminal {
                 data.buffer.remove(idx);
                 self.trail(data.cursor, &data.buffer, true, true, 0);
             }
+            Key::Delete => {
+                let mut data = self.inner()?;
+                if data.cursor == data.buffer.len() {
+                    return Ok(());
+                }
+                let idx = data.cursor;
+                data.buffer.remove(idx);
+                self.trail(data.cursor, &data.buffer, true, true, 0);
+            }
             Key::ArrowUp | Key::Ctrl('p') => {
                 let mut data = self.inner()?;
                 if data.history_index == 0 {
@@ -628,6 +637,11 @@ impl Terminal {
                     if #[cfg(not(target_arch = "wasm32"))] {
                         self.exit().await;
                     } else {
+                        // Clear data buffer, so half-typed commands don't get executed
+                        let mut data = self.inner()?;
+                        data.buffer.clear();
+                        data.cursor = 0;
+
                         // on wasm, we emulate a regular Ctrl+C, which prints '^C' and starts a new line
                         self.write(format!("{}{}","^C\n\r", self.get_prompt()));
                     }
@@ -635,13 +649,36 @@ impl Terminal {
                 return Ok(());
             }
             Key::Ctrl('l') => {
-                // Clear data buffer
+                // Clear data buffer, so half-typed commands don't get executed
                 let mut data = self.inner()?;
                 data.buffer.clear();
                 data.cursor = 0;
 
                 // Clear entire screen, but keep the prompt and the current buffer
                 self.write(format!("{}{}", CLEAR_SCREEN, self.get_prompt()));
+                return Ok(());
+            }
+            Key::Ctrl('a') => {
+                // Move cursor to the beginning of the line
+                let mut data = self.inner()?;
+                
+                if data.cursor > 0 {
+                    self.write(Left(data.cursor as u16));
+                    data.cursor = 0;
+                }
+
+                return Ok(());
+            }
+            Key::Ctrl('e') => {
+                // Move cursor to the end of the line
+                let mut data = self.inner()?;
+                
+                if data.cursor < data.buffer.len() {
+                    let offset : usize = data.buffer.len() - data.cursor;
+                    data.cursor += offset;
+                    self.write(Right(offset as u16));
+                }
+
                 return Ok(());
             }
             Key::Ctrl(_c) => {
