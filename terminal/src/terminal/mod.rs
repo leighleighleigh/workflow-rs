@@ -527,7 +527,7 @@ impl Terminal {
                 data.buffer.remove(idx);
                 self.trail(data.cursor, &data.buffer, true, true, 0);
             }
-            Key::ArrowUp => {
+            Key::ArrowUp | Key::Ctrl('p') => {
                 let mut data = self.inner()?;
                 if data.history_index == 0 {
                     return Ok(());
@@ -627,14 +627,16 @@ impl Terminal {
                 cfg_if! {
                     if #[cfg(not(target_arch = "wasm32"))] {
                         self.exit().await;
+                    } else {
+                        // on wasm, we emulate a regular Ctrl+C, which prints '^C' and starts a new line
+                        self.write(format!("{}{}","^C\n\r", self.get_prompt()));
                     }
                 }
                 return Ok(());
             }
             Key::Ctrl('l') => {
-                // clear screen
-                self.write(format!("{}", CLEAR_SCREEN));
-                self.prompt();
+                // Clear entire screen, but keep the prompt and the current buffer
+                self.write(format!("{}{}", CLEAR_SCREEN, self.get_prompt()));
                 return Ok(());
             }
             Key::Ctrl(_c) => {
