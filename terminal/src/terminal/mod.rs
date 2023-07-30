@@ -350,7 +350,7 @@ impl Terminal {
     {
         if self.is_running() {
             if self.user_input.is_enabled() {
-                self.write(format!("{}{}\n\r", ClearLine, s.into()));
+                self.write(format!("{}{}\n\r", CLEAR_LINE, s.into()));
                 self.write(self.user_input.get_prompt());
                 if !self.user_input.echo.load(Ordering::SeqCst) {
                     self.write(self.user_input.get_buffer());
@@ -359,7 +359,7 @@ impl Terminal {
                 self.write(format!("{}\n\r", s.into()));
             }
         } else {
-            self.write(format!("{}{}\n\r", ClearLine, s.into()));
+            self.write(format!("{}{}\n\r", CLEAR_LINE, s.into()));
             let data = self.inner().unwrap();
             let p = format!("{}{}", self.get_prompt(), data.buffer);
             self.write(p);
@@ -374,7 +374,7 @@ impl Terminal {
     /// is useful when the prompt is handled externally and contains
     /// data that should be updated.
     pub fn refresh_prompt(&self) {
-        self.write(format!("{}", ClearLine));
+        self.write(format!("{}", CLEAR_LINE));
         let data = self.inner().unwrap();
         let p = format!("{}{}", self.get_prompt(), data.buffer);
         self.write(p);
@@ -543,7 +543,7 @@ impl Terminal {
                 data.history_index -= 1;
 
                 data.buffer = data.history[data.history_index].clone();
-                self.write(format!("{}{}{}", ClearLine, self.get_prompt(), data.buffer));
+                self.write(format!("{}{}{}", CLEAR_LINE, self.get_prompt(), data.buffer));
                 data.cursor = data.buffer.len();
             }
             Key::ArrowDown => {
@@ -561,7 +561,7 @@ impl Terminal {
                     data.buffer = data.history[data.history_index].clone();
                 }
 
-                self.write(format!("{}{}{}", ClearLine, self.get_prompt(), data.buffer));
+                self.write(format!("{}{}{}", CLEAR_LINE, self.get_prompt(), data.buffer));
                 data.cursor = data.buffer.len();
             }
             Key::ArrowLeft => {
@@ -629,6 +629,12 @@ impl Terminal {
                         self.exit().await;
                     }
                 }
+                return Ok(());
+            }
+            Key::Ctrl('l') => {
+                // clear screen
+                self.write(format!("{}", CLEAR_SCREEN));
+                self.prompt();
                 return Ok(());
             }
             Key::Ctrl(_c) => {
