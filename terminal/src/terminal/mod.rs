@@ -635,6 +635,11 @@ impl Terminal {
                 return Ok(());
             }
             Key::Ctrl('l') => {
+                // Clear data buffer
+                let mut data = self.inner()?;
+                data.buffer.clear();
+                data.cursor = 0;
+
                 // Clear entire screen, but keep the prompt and the current buffer
                 self.write(format!("{}{}", CLEAR_SCREEN, self.get_prompt()));
                 return Ok(());
